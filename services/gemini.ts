@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ScriptData, VocabularyItem } from "../types";
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 // CACHE LOGIC: Load from localStorage on init
@@ -9,21 +9,21 @@ const CACHE_KEY_PREFIX = 'dailyflow_def_';
 const definitionCache = new Map<string, VocabularyItem>();
 
 try {
-    // Hydrate cache from localStorage (optional: limit size if needed)
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith(CACHE_KEY_PREFIX)) {
-            try {
-                const val = JSON.parse(localStorage.getItem(key) || '');
-                // Clean key to get cacheKey
-                const cacheKey = key.replace(CACHE_KEY_PREFIX, '');
-                definitionCache.set(cacheKey, val);
-            } catch (e) {
-                // Ignore malformed entries
-            }
-        }
-    });
+  // Hydrate cache from localStorage (optional: limit size if needed)
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith(CACHE_KEY_PREFIX)) {
+      try {
+        const val = JSON.parse(localStorage.getItem(key) || '');
+        // Clean key to get cacheKey
+        const cacheKey = key.replace(CACHE_KEY_PREFIX, '');
+        definitionCache.set(cacheKey, val);
+      } catch (e) {
+        // Ignore malformed entries
+      }
+    }
+  });
 } catch (e) {
-    console.warn("Could not access localStorage for cache hydration");
+  console.warn("Could not access localStorage for cache hydration");
 }
 
 // Helper to decode base64 audio
@@ -64,7 +64,7 @@ const SCENARIOS = [
 export const generateDailyScript = async (difficulty: string): Promise<ScriptData> => {
   // Use gemini-3-flash-preview as requested
   const modelId = "gemini-3-flash-preview";
-  
+
   // Select a random scenario to ensure variety
   const randomScenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
 
@@ -131,10 +131,10 @@ export const generateDailyScript = async (difficulty: string): Promise<ScriptDat
 
     const text = response.text;
     if (!text) throw new Error("No script generated");
-    
+
     // Clean potential markdown fences just in case
     const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
-    
+
     const data = JSON.parse(cleanText) as ScriptData;
 
     if (!data.lines || !Array.isArray(data.lines)) {
@@ -156,17 +156,17 @@ export const generateAudioFromScript = async (lines: { speaker: string; english:
 
   // 1. Identify Speakers
   const uniqueSpeakers = Array.from(new Set(lines.map(l => l.speaker)));
-  
+
   // 2. Map Script to Speaker Aliases (SpeakerOne / SpeakerTwo)
   // Removing spaces to avoid potential 500 errors from strict parsing on the backend
   const speakerMap = new Map<string, string>();
-  
+
   uniqueSpeakers.forEach((name, index) => {
     speakerMap.set(name, index % 2 === 0 ? 'SpeakerOne' : 'SpeakerTwo');
   });
 
   const fullText = lines.map(l => {
-    const alias = speakerMap.get(l.speaker) || 'SpeakerOne'; 
+    const alias = speakerMap.get(l.speaker) || 'SpeakerOne';
     return `${alias}: ${l.english}`;
   }).join('\n');
 
@@ -201,93 +201,93 @@ export const generateAudioFromScript = async (lines: { speaker: string; english:
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!base64Audio) throw new Error("No audio generated from multi-speaker model");
 
-    return base64Audio; 
+    return base64Audio;
 
   } catch (error: any) {
     console.warn("Multi-speaker Audio generation failed, attempting fallback to single speaker:", error);
-    
+
     // Optimization: If it's a quota error (429), do not attempt fallback, just throw.
     if (error.message?.includes('429') || error.status === 429 || error.toString().includes('RESOURCE_EXHAUSTED')) {
-         throw error;
+      throw error;
     }
-    
+
     // Fallback: Single Speaker
     // Concatenate text with pauses naturally
     const simpleText = lines.map(l => l.english).join('. ');
-    
+
     try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-preview-tts",
-          contents: [{ parts: [{ text: simpleText }] }],
-          config: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: 'Kore' }
-                }
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: simpleText }] }],
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' }
             }
           }
-        });
+        }
+      });
 
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!base64Audio) throw new Error("No audio generated from fallback model");
-        return base64Audio;
-        
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (!base64Audio) throw new Error("No audio generated from fallback model");
+      return base64Audio;
+
     } catch (fallbackError) {
-        console.error("Fallback Audio generation failed:", fallbackError);
-        throw fallbackError;
+      console.error("Fallback Audio generation failed:", fallbackError);
+      throw fallbackError;
     }
   }
 };
 
 export const getWordDefinition = async (word: string, contextSentence: string): Promise<VocabularyItem> => {
-   // Check cache first
-   // We use a simplified key to increase cache hit rate for same words
-   // but still include a bit of context if the definition relies heavily on it.
-   // For now, let's cache by WORD only for better performance across sessions, 
-   // unless strict context is needed.
-   const cacheKey = `${word.toLowerCase()}`;
-   
-   if (definitionCache.has(cacheKey)) {
-       return definitionCache.get(cacheKey)!;
-   }
+  // Check cache first
+  // We use a simplified key to increase cache hit rate for same words
+  // but still include a bit of context if the definition relies heavily on it.
+  // For now, let's cache by WORD only for better performance across sessions, 
+  // unless strict context is needed.
+  const cacheKey = `${word.toLowerCase()}`;
 
-   // Use gemini-3-flash-preview as requested for speed
-   const modelId = "gemini-3-flash-preview";
-   const prompt = `Define "${word}" in context of: "${contextSentence}". Return a concise English definition, a Chinese definition, and a short example.`;
-   
-   const response = await ai.models.generateContent({
-     model: modelId,
-     contents: prompt,
-     config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-                word: { type: Type.STRING },
-                definitionEn: { type: Type.STRING, description: "Concise English definition" },
-                definitionCn: { type: Type.STRING, description: "Chinese meaning/definition" },
-                example: { type: Type.STRING }
-            },
-            required: ["word", "definitionEn", "definitionCn", "example"]
-        }
-     }
-   });
+  if (definitionCache.has(cacheKey)) {
+    return definitionCache.get(cacheKey)!;
+  }
 
-   const text = response.text || '{}';
-   const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
-   
-   const result = JSON.parse(cleanText) as VocabularyItem;
-   
-   // Update Memory Cache
-   definitionCache.set(cacheKey, result);
-   
-   // Update Persistent Cache (LocalStorage)
-   try {
-       localStorage.setItem(CACHE_KEY_PREFIX + cacheKey, JSON.stringify(result));
-   } catch (e) {
-       console.warn("LocalStorage full or unavailable");
-   }
-   
-   return result;
+  // Use gemini-3-flash-preview as requested for speed
+  const modelId = "gemini-3-flash-preview";
+  const prompt = `Define "${word}" in context of: "${contextSentence}". Return a concise English definition, a Chinese definition, and a short example.`;
+
+  const response = await ai.models.generateContent({
+    model: modelId,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          word: { type: Type.STRING },
+          definitionEn: { type: Type.STRING, description: "Concise English definition" },
+          definitionCn: { type: Type.STRING, description: "Chinese meaning/definition" },
+          example: { type: Type.STRING }
+        },
+        required: ["word", "definitionEn", "definitionCn", "example"]
+      }
+    }
+  });
+
+  const text = response.text || '{}';
+  const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+
+  const result = JSON.parse(cleanText) as VocabularyItem;
+
+  // Update Memory Cache
+  definitionCache.set(cacheKey, result);
+
+  // Update Persistent Cache (LocalStorage)
+  try {
+    localStorage.setItem(CACHE_KEY_PREFIX + cacheKey, JSON.stringify(result));
+  } catch (e) {
+    console.warn("LocalStorage full or unavailable");
+  }
+
+  return result;
 }
