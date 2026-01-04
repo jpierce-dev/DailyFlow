@@ -18,7 +18,7 @@ export const useAudioPlayer = () => {
     const contextRef = useRef<AudioContext | null>(null);
     const sourceRef = useRef<AudioBufferSourceNode | null>(null);
     const bufferRef = useRef<AudioBuffer | null>(null);
-    
+
     // Track timing accurately
     const startTimeRef = useRef<number>(0);
     const pauseTimeRef = useRef<number>(0);
@@ -34,7 +34,7 @@ export const useAudioPlayer = () => {
         setState(prev => ({ ...prev, isLoading: true }));
         try {
             const ctx = getContext();
-            
+
             // Decode base64
             const binaryString = atob(base64);
             const len = binaryString.length;
@@ -53,10 +53,10 @@ export const useAudioPlayer = () => {
 
             bufferRef.current = audioBuffer;
             pauseTimeRef.current = 0;
-            
-            setState(prev => ({ 
-                ...prev, 
-                isLoading: false, 
+
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
                 duration: audioBuffer.duration,
                 currentTime: 0
             }));
@@ -73,7 +73,7 @@ export const useAudioPlayer = () => {
         if (!bufferRef.current) return;
 
         if (sourceRef.current) {
-            try { sourceRef.current.stop(); } catch(e) {}
+            try { sourceRef.current.stop(); } catch (e) { }
         }
 
         const source = ctx.createBufferSource();
@@ -85,14 +85,14 @@ export const useAudioPlayer = () => {
         sourceRef.current = source;
 
         source.onended = () => {
-             const elapsed = ctx.currentTime - startTimeRef.current;
-             const duration = bufferRef.current?.duration || 0;
-             // Natural finish check
-             if (Math.abs(elapsed - duration) < 0.2) {
-                 pauseTimeRef.current = 0;
-                 setState(prev => ({ ...prev, isPlaying: false, currentTime: 0 }));
-                 if (onEnded) onEnded();
-             }
+            const elapsed = ctx.currentTime - startTimeRef.current;
+            const duration = bufferRef.current?.duration || 0;
+            // Natural finish check
+            if (Math.abs(elapsed - duration) < 0.2) {
+                pauseTimeRef.current = 0;
+                setState(prev => ({ ...prev, isPlaying: false, currentTime: 0 }));
+                if (onEnded) onEnded();
+            }
         };
     };
 
@@ -102,27 +102,27 @@ export const useAudioPlayer = () => {
 
         const offset = pauseTimeRef.current % (bufferRef.current?.duration || 1);
         playAudioSource(offset, onEnded);
-        
+
         setState(prev => ({ ...prev, isPlaying: true }));
     }, []);
 
     const pause = useCallback(() => {
         const ctx = getContext();
         if (sourceRef.current) {
-            try { sourceRef.current.stop(); } catch(e) {}
+            try { sourceRef.current.stop(); } catch (e) { }
             sourceRef.current = null;
         }
-        
+
         if (state.isPlaying) {
-             pauseTimeRef.current = ctx.currentTime - startTimeRef.current;
+            pauseTimeRef.current = ctx.currentTime - startTimeRef.current;
         }
-        
+
         setState(prev => ({ ...prev, isPlaying: false }));
     }, [state.isPlaying]);
 
     const stop = useCallback(() => {
         if (sourceRef.current) {
-            try { sourceRef.current.stop(); } catch(e) {}
+            try { sourceRef.current.stop(); } catch (e) { }
             sourceRef.current = null;
         }
         pauseTimeRef.current = 0;
@@ -131,7 +131,7 @@ export const useAudioPlayer = () => {
 
     const reset = useCallback(() => {
         if (sourceRef.current) {
-            try { sourceRef.current.stop(); } catch(e) {}
+            try { sourceRef.current.stop(); } catch (e) { }
             sourceRef.current = null;
         }
         bufferRef.current = null;
@@ -148,22 +148,22 @@ export const useAudioPlayer = () => {
     const seek = useCallback((time: number, onEnded?: () => void) => {
         const ctx = getContext();
         const safeTime = Math.max(0, Math.min(time, bufferRef.current?.duration || 0));
-        
+
         pauseTimeRef.current = safeTime;
-        
+
         if (state.isPlaying) {
             playAudioSource(safeTime, onEnded);
             // State remains playing
         } else {
             // Just update the visual state/internal ref
-             setState(prev => ({ ...prev, currentTime: safeTime }));
+            setState(prev => ({ ...prev, currentTime: safeTime }));
         }
     }, [state.isPlaying]);
 
     const getCurrentTime = useCallback(() => {
         const ctx = contextRef.current;
         if (!ctx) return 0;
-        
+
         if (state.isPlaying) {
             return ctx.currentTime - startTimeRef.current;
         }
@@ -174,7 +174,7 @@ export const useAudioPlayer = () => {
     useEffect(() => {
         return () => {
             if (sourceRef.current) {
-                try { sourceRef.current.stop(); } catch(e) {}
+                try { sourceRef.current.stop(); } catch (e) { }
             }
             if (contextRef.current) contextRef.current.close();
         };
