@@ -75,7 +75,7 @@ export const generateDailyScript = async (difficulty: string): Promise<ScriptDat
     Topic: ${randomScenario}
     
     Constraints:
-    1. Characters: 2 distinct personalities (e.g., Anxious vs Calm, Grumpy vs Cheerful). Give them names.
+    1. Characters: Two distinct personalities. Use the name 'Sarah' for the female character and 'Mike' for the male character.
     2. Style: Real, candid, and authentic. Avoid robotic "textbook" English. Use idioms, contractions, natural interruptions, or slang where appropriate for the context and selected difficulty level.
        - Beginner: Simple sentences, common vocabulary, slower pacing.
        - Intermediate: Mixed tenses, some idioms, natural flow.
@@ -171,18 +171,19 @@ export const generateAudioFromScript = async (lines: { speaker: string; english:
   }).join('\n');
 
   // 3. Assign Voices
-  // SpeakerOne gets a deep male voice (Fenrir)
-  // SpeakerTwo gets a soft female voice (Kore)
-  const speakerConfigs = [
-    {
-      speaker: 'SpeakerOne',
-      voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } }
-    },
-    {
-      speaker: 'SpeakerTwo',
-      voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
-    }
-  ];
+  // Mike gets a deep male voice (Fenrir)
+  // Sarah gets a soft female voice (Kore)
+  const speakerConfigs = uniqueSpeakers.map(name => {
+    const isFemale = name.toLowerCase().includes('sarah');
+    return {
+      speaker: speakerMap.get(name),
+      voiceConfig: {
+        prebuiltVoiceConfig: {
+          voiceName: isFemale ? 'Kore' : 'Fenrir'
+        }
+      }
+    };
+  });
 
   try {
     const response = await ai.models.generateContent({

@@ -54,7 +54,7 @@ const Controls: React.FC<ControlsProps> = ({
     const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#050505]/90 backdrop-blur-xl border-t border-white/10 animate-slide-up pb-[env(safe-area-inset-bottom)]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#050505] border-t border-white/10 animate-slide-up pb-[env(safe-area-inset-bottom)]">
 
             {/* Progress Bar (Absolute Top) */}
             <div className="absolute -top-1.5 left-0 right-0 h-3 group cursor-pointer">

@@ -3,8 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    background-color: #050505;
+    color-scheme: dark;
+  }
   body {
     @apply bg-cube-black text-[#EDEDED];
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 }
 
